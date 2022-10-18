@@ -18,6 +18,7 @@ Python 3.8+ is required and also the following libraries:
 - PIL
 
 See [`requirements.txt`](requirements.txt) for more info.
+
 ---
 **Disclaimer**: all constant are chosen empirically on a small set of documents to suit our purposes and may not work
 
