@@ -26,13 +26,16 @@ class StampAnalyzer:
     def __init__(self, src):
         self.src = src  # the source image
         self.output = src.copy()  # a copy of the image for showing the output
+
         # grascale version of the image
         self.grayscale = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
+
         # HSV version of the image used for finding colored objects
         self.hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
-        # YCrCb version of the image used for finding colored
+
+        # YCrCb version of the image used for finding colored objects
         self.ycrcb = cv2.cvtColor(src, cv2.COLOR_BGR2YCrCb)
-        # objects
+        
         self.height, self.width = src.shape[:2]  # the shape of the image
         self.stamp_coordinates = []  # a list where stamp coordinates will be saved
 
