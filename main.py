@@ -345,10 +345,7 @@ class StampAnalyzer:
 def read_input():
     """
     Parser acting as a CLI for the analyzer. It takes as an input a path to a given document and performs an analysis
-    for stamp detection, the results are returned as a list of 4-tuples (in JSON format) where each 4-tuple
-    determines a rectangle around a detected stamp. The 4-tuple (x1, y1, x2, y2) determines a rectangle whose left
-    segment has x coordinate x1, upper segment has y coordinates y1, right segment has x coordinate x2 and bottom
-    segment has y coordinate y2.
+    for stamp detection.
 
     Usage: python3 main.py [-h] [-s] path
 
@@ -394,8 +391,13 @@ def show_image(img, scale=900, window_name='Detected stamps'):
     # close window
     cv2.destroyAllWindows()
 
-
-if __name__ == '__main__':
+def main():
+    """
+    This defines the high-level processes. We read the input via the parser, define the document and the analyzer and
+    print the results (if any) as a list of 4-tuples (in JSON format) where each 4-tuple defines a rectangle
+    around a detected stamp. The 4-tuple (x1, y1, x2, y2) determines a rectangle whose left segment has x coordinate
+    x1, upper segment has y coordinate y1, right segment has x coordinate x2 and bottom segment has y coordinate y2.
+    """
     # saved the parsed data
     args = read_input()
 
@@ -416,3 +418,7 @@ if __name__ == '__main__':
     # else notify the user about lack of detected objects
     else:
         print("No stamps found in this document")
+
+
+if __name__ == '__main__':
+    main()
