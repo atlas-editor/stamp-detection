@@ -1,161 +1,112 @@
-"""
-Provides utility functions to prepare files for training a cascade classifier using `opencv_traincascade`,
-see https://docs.opencv.org/3.4/dc/d88/tutorial_traincascade.html.
-"""
-import os
-import random
-from PIL import Image
+import itertools
+from typing import List
+import cv2
 
 
-def crop_non_stamp_images(src, dest, N=100):
+def show_image(img: cv2.Mat, scale: int=900, window_name: str='Detected stamps') -> None:
     """
-    Given documents which DO NOT contain stamps, crop random rectangles from them and save them to create negative
-    training data for a cascade classifier.
+    Helper method to display an image with given scaling (the desired height of the image).
 
-    Redundant method as the `opencv_traincascade` utility does this automatically.
+    The window is closed by pressing any key. 
 
-    :param src: the directory containing the negative images
-    :param dest: the directory where cropped images will be saved
-    :param N: the number of cropped images from one single document
+    :param img: image to display
+    :param scale: the height to which we want to scale the image
+    :param window_name: the name of the window displaying the image
     """
+    # display the image
+    cv2.imshow(window_name, cv2.resize(
+        img, (int(scale * (img.shape[1] / img.shape[0])), scale)))
 
-    def crop_random_rectangle(img, w_min=300, w_max=700, h_min=150, h_max=300):
+    # wait for any key press
+    cv2.waitKey(0)
+
+    # close window
+    cv2.destroyAllWindows()
+
+def rotate_image(image: cv2.Mat, center: List[int], theta: float, width: int, height: int) -> cv2.Mat:
+        ''' 
+        Rotates OpenCV image around center with angle theta (in deg) then crops the image according to width and height.
+
+        Source: https://stackoverflow.com/a/11627903.
+
+        :param image: image to rotate
+        :param center: center of rotation
+        :param theta: angle of rotation
+        :param width: width of the region we are cropping
+        :param height: height of the region we are cropping
+
+        :returns: the rotated image
+        '''
+
+        # Uncomment for theta in radians
+        # theta *= 180/np.pi
+
+        # cv2.warpAffine expects shape in (length, height)
+        shape = (image.shape[1], image.shape[0])
+
+        matrix = cv2.getRotationMatrix2D(center=center, angle=theta, scale=1)
+        image = cv2.warpAffine(src=image, M=matrix, dsize=shape)
+
+        x = int(center[0] - width / 2)
+        y = int(center[1] - height / 2)
+
+        image = image[y:y + height, x:x + width]
+
+        return image
+
+def remove_duplicates(stamp_coordinates: List[List[int]]) -> None:
         """
-        Crops a random rectangle from a given image.
-        
-        For our purposes (stamp detection) the random rectangle has width in the interval [300,700] and height in the
-        interval [150,300].
+        Some stamps may be detected several times using different methods, this function removes duplicates. The
+        definition of a duplicate in this context is as follows: an area is considered a duplicate if there is a
+        larger area such that their intersection is more than 1/4 of the smaller area.
 
-        :param img: the image to be cropped
-        :param w_min: the minimal width of the rectangle
-        :param w_max: the maximal width of the rectangle
-        :param h_min: the minimal height of the rectangle
-        :param h_max: the maximal height of the rectangle
-        :returns: the cropped image `img`
+        :param stamp_coordinates: list of 4-tuples of coordinates of stamps
         """
-        image = Image.open(img)
-        image_width, image_height = image.size
 
-        # first we choose the (x,y) coordinates of the upper left corner
-        x = random.randint(0, image_width - w_max)
-        y = random.randint(0, image_height - h_max)
+        # helper method to derive the area of a region
+        def area(coordinates: List[List[int]]) -> int:
+            return (coordinates[2] - coordinates[0]) * (coordinates[3] - coordinates[1])
 
-        # we randomize the width and the height of the rectangle
-        crop_width = random.randint(w_min, w_max)
-        crop_height = random.randint(h_min, h_max)
+        duplicates = []
 
-        return image.crop((x, y, x + crop_width, y + crop_height))
+        # we iterate over unordered pairs
+        for pair in itertools.combinations(stamp_coordinates, 2):
+            obj0, obj1 = pair
+            if obj0 != obj1:
+                # determine the areas and the smaller region
+                area_obj0 = area(obj0)
+                area_obj1 = area(obj1)
+                smaller_obj = obj0 if area_obj0 < area_obj1 else obj1
 
-    for filename in os.listdir(src):
-        img = src + filename
-        for j in range(N):
-            cropped = crop_random_rectangle(img)
-            cropped.save(f"{dest}crop-{j}-{filename}")
+                # if the regions do not overlap continue to next pair
+                if obj0[2] <= obj1[0] or obj0[3] <= obj1[1] or obj1[2] <= obj0[0] or obj1[3] <= obj0[1]:
+                    continue
 
-        print(f"image {filename} cropped and saved")
+                # calculate the intersection coordinates if there is an overlap
+                intersection_coordinates = [max(obj0[0], obj1[0]), max(obj0[1], obj1[1]), min(obj0[2], obj1[2]),
+                                            min(obj0[3], obj1[3])]
+                # determine the are if the intersection
+                area_intersection = area(intersection_coordinates)
 
+                # if the are is big enough we mark the smaller region as a duplicate
+                if area_intersection > 0.25 * min(area_obj0, area_obj1):
+                    duplicates.append(smaller_obj)
 
-def crop_stamp(map, pixel):
-    """
-    Given two (uncropped) images (both coming from scans of documents), map and pixel (both grayscale), where pixel
-    contains the stamp and map is shaded black on a rectangle (may be rotated) covering the stamp (if the two images
-    were superimposed) this methods finds the region of the image where the stamp is present and crops the image to
-    contain only the stamp region.
+        # remove all duplicates from the detected stamps
+        stamp_coordinates = [x for x in stamp_coordinates if x not in duplicates]
 
-    :param map: the image which shows the part of the scan where the stamp is present
-    :param pixel: the image which shows only the stamp on the scan
-    :returns: the cropped stamp
-    """
+def draw_stamp_rectangles(stamp_coordinates: List[List[int]], img: cv2.Mat) -> cv2.Mat:
+        """
+        Helper method to draw a rectangle around stamp like objects found during the analysis.
 
-    image = Image.open(map)
-    width, height = image.size
+        :param stamp_coordinates: list of 4-tuples of coordinates of stamps
+        :param img: the image where the stamps were detected and the rectangles will be drawn
 
-    # u, r, b, l will denote the upper, right, bottom and left corners of the stamp within the image
-    # u is the y coordinate of the upper corner (possibly the entire upper segment of the rectangle if not rotated)
-    # r is the x coordinate of the right corner ...
-    # etc.
-    u, r, b, l = -1, -1, -1, -1
+        :returns: the input `img` with rectangles drawn around stamps as specified in `stamp_coordinates`
+        """
+        output = img.copy()
+        for obj in stamp_coordinates:
+            x1, y1, x2, y2 = obj
+            cv2.rectangle(output, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    # we loop over the entire image pixel by pixel and find the extremes of the shaded region
-    for y in range(height):
-        for x in range(width):
-            color = image.getpixel((x, y))
-            print(color)
-            if color == 0:
-                if u == -1:
-                    u, r, b, l = y, x, y, x
-                r = max(r, x)
-                b = max(b, y)
-                l = min(l, x)
-
-    original = Image.open(pixel)
-    if u == -1:
-        return None
-    return original.crop((l, u, r, b))
-
-
-def crop_saved_stamps(map_dir, pixel_dir, info_dir, cropped_dir):
-    """
-    Given documents containing stamps and further data (see the `crop_stamp` method) crop the stamps from the scans
-    and save them. These are to be used as positive training data for a cascade classifier.
-
-    :param map_dir: directory containing the maps, see map in `crop_stamp`
-    :param pixel_dir: directory containing the pixels, see pixel in `crop_stamp`
-    :param info_dir: directory containing info about stamps in a given document
-    :param cropped_dir: directory where the cropped stamps will be saved
-    """
-    for i in range(400, 401):
-        map = f"./{map_dir}/stampDS-{str(i).rjust(5, '0')}-gt.png"
-        pixel = f"./{pixel_dir}/stampDS-{str(i).rjust(5, '0')}-px.png"
-
-        with open(f"./{info_dir}/stampDS-{str(i).rjust(5, '0')}.txt", 'r') as info:
-            info.readline()  # header; the format is: "signature    textOverlap    numStamps    bwStamp1"
-            no_of_stamps = int(info.readline().strip().split()[
-                                   2])  # the number of stamps
-            # we only care about documents with exactly 1 stamp
-            if no_of_stamps == 0:
-                print(f"image no. {i} has no stamp")
-                continue
-            elif no_of_stamps > 1:
-                print(f"image no. {i} has more than one stamp")
-                continue
-
-        cropped = crop_stamp(map, pixel)
-        if cropped is None:
-            print(
-                f"image no. {i} has no stamp but the info file indicated otherwise")
-            continue
-        cropped.save(
-            f"./{cropped_dir}/stampDS-{str(i).rjust(5, '0')}-cr.png")
-
-        print(f"image no. {i} saved")
-
-    print('\nall stamps cropped')
-
-
-def create_negative_list(classifier_dir):
-    """
-    Create a document containing the negative images for the `opencv_traincascade` utility.
-
-    :param classifier_dir: directory containing the classifier
-    """
-    with open(f"./{classifier_dir}/bg.txt", 'w') as file:
-        for img in os.listdir(f"./{classifier_dir}/bg/"):
-            file.write(f"./bg/{img}\n")
-
-
-def create_positive_list(classifier_dir):
-    """
-    Create a document containing the positive images (those which contain the desired object) for the
-    `opencv_traincascade` utility.
-
-    :param classifier_dir: directory containing the classifier
-    """
-    with open(f"./{classifier_dir}/info.dat", 'w') as file:
-        for img in os.listdir("./{classifier_dir}/p/"):
-            image = Image.open(f"./{classifier_dir}/p/{img}")
-            file.write(f"./p/{img} 1 0 0 {image.size[0]} {image.size[1]}\n")
-
-
-if __name__ == "__main__":
-    pass
+        return output
