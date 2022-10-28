@@ -34,6 +34,7 @@ def read_input():
     # parse the input
     return parser.parse_args()
 
+
 def main():
     """
     This defines the high-level processes. We read the input via the parser, define the document and the analyzer and

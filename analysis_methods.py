@@ -10,6 +10,7 @@ HSV_BR_COLOR_BOUNDS = [[(90, 25, 100), (120, 255, 255)], [(150, 50, 0), (179, 25
 # location of the cascade classfier
 CASCADE_CLASSIFIER = "cascade.xml"
 
+
 class ImageContainer:
     """
     A class saving info about an image and its various forms used in further analysis.
@@ -25,7 +26,14 @@ class ImageContainer:
         self.width: int = src.shape[0]
         self.height: int = src.shape[1]
 
-def stamp_like_features(image_container: ImageContainer, x: int, y: int, width: int, height: int, threshold: Optional[cv2.Mat] = None, rotated_rect: Optional[cv2.Mat] = None, threshold_lower_bound: int = 140, threshold_upper_bound: int = 255, density_lower_bound: float = 0.064, density_upper_bound: float = 0.5, wh_ratio_lower_bound: float = 0.3, wh_ratio_upper_bound: float = 4.0, dimensions_lower_bound_factors: Tuple[int, int] = (20,50), dimensions_upper_bound_factors: Tuple[int, int] = (3,4)) -> Tuple[bool, List[int]]:
+
+def stamp_like_features(image_container: ImageContainer, x: int, y: int, width: int, height: int,
+                        threshold: Optional[cv2.Mat] = None, rotated_rect: Optional[cv2.Mat] = None,
+                        threshold_lower_bound: int = 140, threshold_upper_bound: int = 255,
+                        density_lower_bound: float = 0.064, density_upper_bound: float = 0.5,
+                        wh_ratio_lower_bound: float = 0.3, wh_ratio_upper_bound: float = 4.0,
+                        dimensions_lower_bound_factors: Tuple[int, int] = (20, 50),
+                        dimensions_upper_bound_factors: Tuple[int, int] = (3, 4)) -> Tuple[bool, List[int]]:
     """
     Given an area of an image find out if it has stamp like features. The following features are determined:
 
@@ -48,8 +56,10 @@ def stamp_like_features(image_container: ImageContainer, x: int, y: int, width: 
     :param density_upper_bound: the default pixel density upper bound
     :param wh_ratio_lower_bound: the default width to height lower bound
     :param wh_ratio_upper_bound: the default width to height upper bound
-    :param dimensions_lower_bound_factors: a tuple of integers for width and height respectively, which dictate the lower bounds for dimensions of the detected object relative to the size of the entire image
-    :param dimensions_upper_bound_factors: a tuple of integers for width and height respectively, which dictate the upper bounds for dimensions of the detected object relative to the size of the entire image
+    :param dimensions_lower_bound_factors: a tuple of integers for width and height respectively, which dictate the
+    lower bounds for dimensions of the detected object relative to the size of the entire image
+    :param dimensions_upper_bound_factors: a tuple of integers for width and height respectively, which dictate the
+    upper bounds for dimensions of the detected object relative to the size of the entire image
 
     :returns: a tuple (flag, corners) where flag is true iff the tracked features satisfy the defined bounds and
     corners is the corner coordinates of the detected object
@@ -72,20 +82,22 @@ def stamp_like_features(image_container: ImageContainer, x: int, y: int, width: 
         # if the rectangle is only slightly rotated we calculate the density just based on the (upright) bounding
         # rectangle
         else:
-            density_in_bound = density_lower_bound < threshold[y:y +
-                                                 height, x:x + width].mean() / 255 <= density_upper_bound
+            density_in_bound = density_lower_bound < threshold[y:y + height,
+                                                     x:x + width].mean() / 255 <= density_upper_bound
     # if the rotated rectangle is not supplied we calculate the density just based on the (upright) bounding
     # rectangle
     else:
         density_in_bound = density_lower_bound < threshold[y:y +
-                                             height, x:x + width].mean() / 255 <= density_upper_bound
+                                                             height, x:x + width].mean() / 255 <= density_upper_bound
 
     # the width:height ratio is determined
     wh_ratio_in_bound = wh_ratio_lower_bound < width / height <= wh_ratio_upper_bound
 
     # the relative dimensions should follow these rules
-    dimensions_lower_bound = width > image_container.width / dimensions_lower_bound_factors[0] and height > image_container.height / dimensions_lower_bound_factors[1]
-    dimensions_upper_bound = width < image_container.width / dimensions_upper_bound_factors[0] and height < image_container.height / dimensions_upper_bound_factors[1]
+    dimensions_lower_bound = width > image_container.width / dimensions_lower_bound_factors[
+        0] and height > image_container.height / dimensions_lower_bound_factors[1]
+    dimensions_upper_bound = width < image_container.width / dimensions_upper_bound_factors[
+        0] and height < image_container.height / dimensions_upper_bound_factors[1]
 
     # verify the features
     flag = density_in_bound and wh_ratio_in_bound and dimensions_lower_bound and dimensions_upper_bound
@@ -96,15 +108,18 @@ def stamp_like_features(image_container: ImageContainer, x: int, y: int, width: 
     # return whether the area has stamp like features and the corners of the bounding box around the object
     return flag, corners
 
-def find_contours(image_container: ImageContainer, threshold: cv2.Mat, opening_kernel_dimensions:Tuple[int, int] = (4,4), closing_kernel_dimensions: Tuple[int, int] = (50,50)) -> List[List[int]]:
+
+def find_contours(image_container: ImageContainer, threshold: cv2.Mat,
+                  opening_kernel_dimensions: Tuple[int, int] = (4, 4),
+                  closing_kernel_dimensions: Tuple[int, int] = (50, 50)) -> List[List[int]]:
     """
     Find contours in a binary image (threshold) and verify if the contours have stamp like features and save the
     coordinates of verified objects.
 
     :param image_container: contains data about image and its various forms
-    :threshold: threshold used for contour detection
-    :opening_kernel_dimension: dimensions used for the opening kernel
-    :closing_kernel_dimension: dimensions used for the closing kernel
+    :param threshold: threshold used for contour detection
+    :param opening_kernel_dimensions: dimensions used for the opening kernel
+    :param closing_kernel_dimensions: dimensions used for the closing kernel
 
     :returns: coordinates of contours with stamp like features
     """
@@ -129,7 +144,7 @@ def find_contours(image_container: ImageContainer, threshold: cv2.Mat, opening_k
     for c in contours:
         # verifying if the contour has the desired features
         stamp_like, corner_coordinates = stamp_like_features(image_container, *cv2.boundingRect(c), threshold=opening,
-                                                                    rotated_rect=cv2.minAreaRect(c))
+                                                             rotated_rect=cv2.minAreaRect(c))
         # if yes we mark the object
         if stamp_like:
             object_coordinates.append(corner_coordinates)
@@ -138,7 +153,8 @@ def find_contours(image_container: ImageContainer, threshold: cv2.Mat, opening_k
     return object_coordinates
 
 
-def find_circles(image_container: ImageContainer, hough_param1: int = 120, hough_param2: int = 50, min_radius: int = 100, max_radius: int = 200) -> List[List[int]]:
+def find_circles(image_container: ImageContainer, hough_param1: int = 120, hough_param2: int = 50,
+                 min_radius: int = 100, max_radius: int = 200) -> List[List[int]]:
     """
     It is common to have stamps which have round shape. The Hough Circle Transform is used to detect circles and
     then the region is verified for stamp like features.
@@ -173,13 +189,14 @@ def find_circles(image_container: ImageContainer, hough_param1: int = 120, hough
 
             # verify the region for desired features
             stamp_like, corner_coordinates = stamp_like_features(image_container=image_container,
-                x=x, y=y, width=width, height=height)
+                                                                 x=x, y=y, width=width, height=height)
 
             if stamp_like:
                 object_coordinates.append(corner_coordinates)
 
     # return the stamp like objects
     return object_coordinates
+
 
 def find_colored_objects_ycrcb(image_container: ImageContainer) -> List[List[int]]:
     """
@@ -202,10 +219,12 @@ def find_colored_objects_ycrcb(image_container: ImageContainer) -> List[List[int
 
         # find contours in the threshold
         object_coordinates += find_contours(image_container, thresh)
-    
+
     return object_coordinates
 
-def find_colored_objects_hsv(image_container: ImageContainer, color_lower_bound: int, color_upper_bound: int) -> List[List[int]]:
+
+def find_colored_objects_hsv(image_container: ImageContainer, color_lower_bound: int, color_upper_bound: int) -> \
+        List[List[int]]:
     """
     The HSV color space is suitable to detect regions of the image having a certain color shade, if the bounds
     are correctly chosen and tight enough this analysis yields good results.
@@ -224,6 +243,7 @@ def find_colored_objects_hsv(image_container: ImageContainer, color_lower_bound:
     # find contours in the threshold and return stamp like objects
     return find_contours(image_container, thresh)
 
+
 def find_br_objects_hsv(image_container: ImageContainer) -> List[List[int]]:
     """
     Find blue and red objects in the image using the HSV color scheme.
@@ -235,11 +255,13 @@ def find_br_objects_hsv(image_container: ImageContainer) -> List[List[int]]:
     object_coordinates = []
 
     for bounds in HSV_BR_COLOR_BOUNDS:
-            object_coordinates += find_colored_objects_hsv(image_container, *bounds)
+        object_coordinates += find_colored_objects_hsv(image_container, *bounds)
 
     return object_coordinates
 
-def cascade_classifier(image_container: ImageContainer, width_lower_bound: int=680, width_upper_bound:int = 910, height_lower_bound:int = 450, height_upper_bound:int = 500) -> List[List[int]]:
+
+def cascade_classifier(image_container: ImageContainer, width_lower_bound: int = 680, width_upper_bound: int = 910,
+                       height_lower_bound: int = 450, height_upper_bound: int = 500) -> List[List[int]]:
     """
     A custom trained cascade classifier is used to detect stamps in documents. The success rate of this method is
     limited and best results are for detected objects of width in range (680, 910) and height in range (450,
@@ -247,10 +269,10 @@ def cascade_classifier(image_container: ImageContainer, width_lower_bound: int=6
     during the research of [1].
 
     :param image_container: contains data about image and its various forms
-    :width_lower_bound: the width lower bound for the detected object
-    :width_upper_bound: the width upper bound for the detected object
-    :height_lower_bound: the height lower bound for the detected object
-    :height_upper_bound: the height upper bound for the detected object
+    :param width_lower_bound: the width lower bound for the detected object
+    :param width_upper_bound: the width upper bound for the detected object
+    :param height_lower_bound: the height lower bound for the detected object
+    :param height_upper_bound: the height upper bound for the detected object
 
     :returns: coordinates of objects marked as a stamp using the custom cascade classifier
     """

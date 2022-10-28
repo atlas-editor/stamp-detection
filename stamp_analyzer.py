@@ -16,6 +16,7 @@ import analysis_methods
 
 from utils import remove_duplicates
 
+
 class StampAnalyzer:
     """
     A class utilizing several methods to detect stamps in official documents.
@@ -30,12 +31,16 @@ class StampAnalyzer:
         """
         Function utilizing all the methods used to find stamps in official documents.
 
-        The results (if any) are returned as a list of lists (of size 4) where each 4-tuple defines a rectangle around a detected stamp. The 4-tuple (x1, y1, x2, y2) determines a rectangle whose left segment has x coordinate x1, upper segment has y coordinate y1, right segment has x coordinate x2 and bottom segment has y coordinate y2.
+        The results (if any) are returned as a list of lists (of size 4) where each 4-tuple defines a rectangle
+        around a detected stamp. The 4-tuple (x1, y1, x2, y2) determines a rectangle whose left segment has x
+        coordinate x1, upper segment has y coordinate y1, right segment has x coordinate x2 and bottom segment has y
+        coordinate y2.
 
         :returns: coordinates of objects classified as stamps by the analyzer
         """
         stamp_coordinates = []
-        pipeline = [analysis_methods.find_circles, analysis_methods.find_colored_objects_ycrcb, analysis_methods.find_br_objects_hsv, analysis_methods.cascade_classifier]
+        pipeline = [analysis_methods.find_circles, analysis_methods.find_colored_objects_ycrcb,
+                    analysis_methods.find_br_objects_hsv, analysis_methods.cascade_classifier]
 
         for method in pipeline:
             stamp_coordinates += method(self.image_container)

@@ -26,6 +26,6 @@ well for domains outside of official documents.
 
 **References**:
 
-​    [1] B. Micenkova and J. v. Beusekom, "Stamp Detection in Color Document Images", 2011
+​    [1] B. Micenkova and J. v. Beusekom. *Stamp Detection in Color Document Images*. 2011.
 
-​    [2] P. Forczmanski and A. Markiewicz, "Stamps Detection and Classification Using Simple Features Ensemble", 2015
+​    [2] P. Forczmanski and A. Markiewicz. *Stamps Detection and Classification Using Simple Features Ensemble*. 2015.
