@@ -55,6 +55,20 @@ def rotate_image(image: cv2.Mat, center: List[int], theta: float, width: int, he
 
     return image
 
+def create_binary_image(image: cv2.Mat, threshold_lower_bound: int = 140, threshold_upper_bound: int = 255) -> cv2.Mat:
+    """
+    Given an image create a binary version using thresholding with given values.
+
+    :param image: the image to binarize
+    :param threshold_lower_bound: thresholding lower bound
+    :param threshold_upper_bound: thresholding upper bound
+
+    :returns: binary version of the image
+    """
+    _, threshold = cv2.threshold(image, threshold_lower_bound, threshold_upper_bound, cv2.THRESH_BINARY)
+
+    return threshold
+
 
 def remove_duplicates(stamp_coordinates: List[List[int]]) -> None:
     """

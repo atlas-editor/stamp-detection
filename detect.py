@@ -11,7 +11,7 @@ def read_input():
     Parser acting as a CLI for the analyzer. It takes as an input a path to a given document and performs an analysis
     for stamp detection.
 
-    Usage: python3 main.py [-h] [-s] path
+    Usage: python3 detect.py [-h] [-s] path
 
     Positional arguments:
         path        path to a document
