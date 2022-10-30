@@ -1,12 +1,30 @@
+from dataclasses import dataclass
 from typing import Tuple
 import cv2
 
+@dataclass(frozen=True)
+class StampFeatureSettings:
+    """
+    A class saving all the parameter values for stamp features.
 
-def stamp_like_features(stamp: cv2.Mat, document_width: int, document_height: int,
-                        density_lower_bound: float = 0.064, density_upper_bound: float = 0.5,
-                        wh_ratio_lower_bound: float = 0.3, wh_ratio_upper_bound: float = 4.0,
-                        dimensions_lower_bound_factors: Tuple[int, int] = (20, 50),
-                        dimensions_upper_bound_factors: Tuple[int, int] = (3, 4)) -> bool:
+    :param density_lower_bound: the default pixel density lower bound
+    :param density_upper_bound: the default pixel density upper bound
+    :param wh_ratio_lower_bound: the default width to height lower bound
+    :param wh_ratio_upper_bound: the default width to height upper bound
+    :param dimensions_lower_bound_factors: a tuple of integers for width and height respectively, which dictate the
+    lower bounds for dimensions of the detected object relative to the size of the entire image
+    :param dimensions_upper_bound_factors: a tuple of integers for width and height respectively, which dictate the
+    upper bounds for dimensions of the detected object relative to the size of the entire image
+    """
+    density_lower_bound: float = 0.064
+    density_upper_bound: float = 0.5
+    wh_ratio_lower_bound: float = 0.3
+    wh_ratio_upper_bound: float = 4.0
+    dimensions_lower_bound_factors: Tuple[int, int] = (20, 50)
+    dimensions_upper_bound_factors: Tuple[int, int] = (3, 4)
+
+
+def stamp_like_features(stamp: cv2.Mat, document_width: int, document_height: int, feature_settings: StampFeatureSettings) -> bool:
     """
     Given an area of an image find out if it has stamp like features. The following features are determined:
 
@@ -18,14 +36,7 @@ def stamp_like_features(stamp: cv2.Mat, document_width: int, document_height: in
     :param stamp: contains part of the document which is checked for stamp like features
     :param document_width: width of the entire document
     :param document_height: height of the entire document
-    :param density_lower_bound: the default pixel density lower bound
-    :param density_upper_bound: the default pixel density upper bound
-    :param wh_ratio_lower_bound: the default width to height lower bound
-    :param wh_ratio_upper_bound: the default width to height upper bound
-    :param dimensions_lower_bound_factors: a tuple of integers for width and height respectively, which dictate the
-    lower bounds for dimensions of the detected object relative to the size of the entire image
-    :param dimensions_upper_bound_factors: a tuple of integers for width and height respectively, which dictate the
-    upper bounds for dimensions of the detected object relative to the size of the entire image
+    :param feature_settings: container with parameters, see StampFeatureSettings for more info
 
     :returns: a boolean flag which is true iff the tracked features satisfy the defined bounds
     """
@@ -33,13 +44,13 @@ def stamp_like_features(stamp: cv2.Mat, document_width: int, document_height: in
     stamp_height = stamp.shape[1]
 
     # we calculate the density
-    density_check = density_in_bound(stamp, density_lower_bound, density_upper_bound)
+    density_check = density_in_bound(stamp, feature_settings.density_lower_bound, feature_settings.density_upper_bound)
 
     # the width:height ratio is determined
-    wh_ratio_check = wh_ratio_in_bound(stamp_width, stamp_height, wh_ratio_lower_bound, wh_ratio_upper_bound)
+    wh_ratio_check = wh_ratio_in_bound(stamp_width, stamp_height, feature_settings.wh_ratio_lower_bound, feature_settings.wh_ratio_upper_bound)
 
     # the relative dimensions should follow the given rules
-    dimensions_check = dimension_in_bound(stamp_width, stamp_height, document_width, document_height, dimensions_lower_bound_factors, dimensions_upper_bound_factors)
+    dimensions_check = dimension_in_bound(stamp_width, stamp_height, document_width, document_height, feature_settings.dimensions_lower_bound_factors, feature_settings.dimensions_upper_bound_factors)
 
     # return whether the area has stamp like features
     return density_check and wh_ratio_check and dimensions_check

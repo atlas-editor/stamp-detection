@@ -10,7 +10,7 @@ References:
     [2] P. Forczmanski and A. Markiewicz, "Stamps Detection and Classification Using Simple Features Ensemble", 2015
 """
 
-from typing import List
+from typing import List, Optional
 import cv2
 import analysis_methods
 
@@ -21,11 +21,13 @@ class StampAnalyzer:
     """
     A class utilizing several methods to detect stamps in official documents.
 
-    :param src: document on which to perform the analysis
+    :param source_image: document on which to perform the analysis
+    :param parameters: container with parameters, see AnalysisSettings for more info
     """
 
-    def __init__(self, src: cv2.Mat) -> None:
-        self.image_container = analysis_methods.ImageContainer(src)
+    def __init__(self, source_image: cv2.Mat, parameters: Optional[analysis_methods.AnalysisSettings] = None) -> None:
+        self.analysis_parameters = parameters if parameters is not None else analysis_methods.AnalysisSettings()
+        self.image_container = analysis_methods.ImageContainer(source_image)
 
     def analyze(self) -> List[List[int]]:
         """
@@ -43,9 +45,9 @@ class StampAnalyzer:
                     analysis_methods.find_br_objects_hsv, analysis_methods.cascade_classifier]
 
         for method in pipeline:
-            stamp_coordinates += method(self.image_container)
+            stamp_coordinates += method(self.image_container, self.analysis_parameters)
 
-        remove_duplicates(stamp_coordinates)
+        stamp_coordinates = remove_duplicates(stamp_coordinates)
 
         return stamp_coordinates
 

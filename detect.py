@@ -1,6 +1,7 @@
 import argparse
 
 import cv2
+
 from stamp_analyzer import StampAnalyzer
 
 from utils import draw_stamp_rectangles, show_image
@@ -41,10 +42,10 @@ def main():
     print the results.
     """
     # saved the parsed data
-    args = read_input()
+    input_arguments = read_input()
 
     # define the document from the input
-    document = cv2.imread(args.path)
+    document = cv2.imread(input_arguments.path)
 
     # analyze the document
     analyzer = StampAnalyzer(document)
@@ -57,7 +58,7 @@ def main():
         print(stamp_coordinates)
 
         # and display them if indicated by user
-        if args.show:
+        if input_arguments.show:
             output = draw_stamp_rectangles(stamp_coordinates, document)
             show_image(output)
     # else notify the user about lack of detected objects

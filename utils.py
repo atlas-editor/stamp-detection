@@ -3,19 +3,19 @@ from typing import List
 import cv2
 
 
-def show_image(img: cv2.Mat, scale: int = 900, window_name: str = 'Detected stamps') -> None:
+def show_image(image: cv2.Mat, scale: int = 900, window_name: str = 'Detected stamps') -> None:
     """
     Helper method to display an image with given scaling (the desired height of the image).
 
     The window is closed by pressing any key. 
 
-    :param img: image to display
+    :param image: image to display
     :param scale: the height to which we want to scale the image
     :param window_name: the name of the window displaying the image
     """
     # display the image
     cv2.imshow(window_name, cv2.resize(
-        img, (int(scale * (img.shape[1] / img.shape[0])), scale)))
+        image, (int(scale * (image.shape[1] / image.shape[0])), scale)))
 
     # wait for any key press
     cv2.waitKey(0)
@@ -26,18 +26,18 @@ def show_image(img: cv2.Mat, scale: int = 900, window_name: str = 'Detected stam
 
 def rotate_image(image: cv2.Mat, center: List[int], theta: float, width: int, height: int) -> cv2.Mat:
     """
-        Rotates OpenCV image around center with angle theta (in deg) then crops the image according to width and height.
+    Rotates OpenCV image around center (counter clockwise) with angle theta (in deg) then crops the image according to width and height.
 
-        Source: https://stackoverflow.com/a/11627903.
+    Source: https://stackoverflow.com/a/11627903.
 
-        :param image: image to rotate
-        :param center: center of rotation
-        :param theta: angle of rotation
-        :param width: width of the region we are cropping
-        :param height: height of the region we are cropping
+    :param image: image to rotate
+    :param center: center of rotation
+    :param theta: angle of rotation
+    :param width: width of the region we are cropping
+    :param height: height of the region we are cropping
 
-        :returns: the rotated image
-        """
+    :returns: the rotated image
+    """
 
     # Uncomment for theta in radians
     # theta *= 180/np.pi
@@ -72,12 +72,12 @@ def create_binary_image(image: cv2.Mat, threshold_lower_bound: int = 140, thresh
 
 def remove_duplicates(stamp_coordinates: List[List[int]]) -> None:
     """
-        Some stamps may be detected several times using different methods, this function removes duplicates. The
-        definition of a duplicate in this context is as follows: an area is considered a duplicate if there is a
-        larger area such that their intersection is more than 1/4 of the smaller area.
+    Some stamps may be detected several times using different methods, this function removes duplicates. The
+    definition of a duplicate in this context is as follows: an area is considered a duplicate if there is a
+    larger area such that their intersection is more than 1/4 of the smaller area.
 
-        :param stamp_coordinates: list of 4-tuples of coordinates of stamps
-        """
+    :param stamp_coordinates: list of 4-tuples of coordinates of stamps
+    """
 
     # helper method to derive the area of a region
     def area(coordinates: List[List[int]]) -> int:
@@ -109,18 +109,18 @@ def remove_duplicates(stamp_coordinates: List[List[int]]) -> None:
                 duplicates.append(smaller_obj)
 
     # remove all duplicates from the detected stamps
-    stamp_coordinates = [x for x in stamp_coordinates if x not in duplicates]
+    return [x for x in stamp_coordinates if x not in duplicates]
 
 
 def draw_stamp_rectangles(stamp_coordinates: List[List[int]], img: cv2.Mat) -> cv2.Mat:
     """
-        Helper method to draw a rectangle around stamp like objects found during the analysis.
+    Helper method to draw a rectangle around stamp like objects found during the analysis.
 
-        :param stamp_coordinates: list of 4-tuples of coordinates of stamps
-        :param img: the image where the stamps were detected and the rectangles will be drawn
+    :param stamp_coordinates: list of 4-tuples of coordinates of stamps
+    :param img: the image where the stamps were detected and the rectangles will be drawn
 
-        :returns: a copy of the input `img` with rectangles drawn around stamps as specified in `stamp_coordinates`
-        """
+    :returns: a copy of the input `img` with rectangles drawn around stamps as specified in `stamp_coordinates`
+    """
     output = img.copy()
     for obj in stamp_coordinates:
         x1, y1, x2, y2 = obj
