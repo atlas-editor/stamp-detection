@@ -22,7 +22,7 @@ Python 3.8+ is required and also the following libraries:
 See [`requirements.txt`](requirements.txt) for more info.
 
 ---
-**Disclaimer**: all constant are chosen empirically on a small set of documents to suit our purposes and may not work
+**Disclaimer**: the default constants are chosen empirically on a small set of documents to suit our purposes and may not work
 
 well for domains outside of official documents.
 
