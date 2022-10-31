@@ -26,7 +26,8 @@ def show_image(image: cv2.Mat, scale: int = 900, window_name: str = 'Detected st
 
 def rotate_image(image: cv2.Mat, center: List[int], theta: float, width: int, height: int) -> cv2.Mat:
     """
-    Rotates OpenCV image around center (counter clockwise) with angle theta (in deg) then crops the image according to width and height.
+    Rotates OpenCV image around center (counter clockwise) with angle theta (in deg) then crops the image according to
+    width and height.
 
     Source: https://stackoverflow.com/a/11627903.
 
@@ -55,6 +56,7 @@ def rotate_image(image: cv2.Mat, center: List[int], theta: float, width: int, he
 
     return image
 
+
 def create_binary_image(image: cv2.Mat, threshold_lower_bound: int = 140, threshold_upper_bound: int = 255) -> cv2.Mat:
     """
     Given an image create a binary version using thresholding with given values.
@@ -70,7 +72,7 @@ def create_binary_image(image: cv2.Mat, threshold_lower_bound: int = 140, thresh
     return threshold
 
 
-def remove_duplicates(stamp_coordinates: List[List[int]]) -> None:
+def remove_duplicates(stamp_coordinates: List[List[int]]) -> List[List[int]]:
     """
     Some stamps may be detected several times using different methods, this function removes duplicates. The
     definition of a duplicate in this context is as follows: an area is considered a duplicate if there is a

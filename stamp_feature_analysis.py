@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import Tuple
 import cv2
 
-@dataclass(frozen=True)
+
+@dataclass
 class StampFeatureSettings:
     """
     A class saving all the parameter values for stamp features.
@@ -24,7 +25,8 @@ class StampFeatureSettings:
     dimensions_upper_bound_factors: Tuple[int, int] = (3, 4)
 
 
-def stamp_like_features(stamp: cv2.Mat, document_width: int, document_height: int, feature_settings: StampFeatureSettings) -> bool:
+def stamp_like_features(stamp: cv2.Mat, document_width: int, document_height: int,
+                        feature_settings: StampFeatureSettings) -> bool:
     """
     Given an area of an image find out if it has stamp like features. The following features are determined:
 
@@ -47,10 +49,13 @@ def stamp_like_features(stamp: cv2.Mat, document_width: int, document_height: in
     density_check = density_in_bound(stamp, feature_settings.density_lower_bound, feature_settings.density_upper_bound)
 
     # the width:height ratio is determined
-    wh_ratio_check = wh_ratio_in_bound(stamp_width, stamp_height, feature_settings.wh_ratio_lower_bound, feature_settings.wh_ratio_upper_bound)
+    wh_ratio_check = wh_ratio_in_bound(stamp_width, stamp_height, feature_settings.wh_ratio_lower_bound,
+                                       feature_settings.wh_ratio_upper_bound)
 
     # the relative dimensions should follow the given rules
-    dimensions_check = dimension_in_bound(stamp_width, stamp_height, document_width, document_height, feature_settings.dimensions_lower_bound_factors, feature_settings.dimensions_upper_bound_factors)
+    dimensions_check = dimension_in_bound(stamp_width, stamp_height, document_width, document_height,
+                                          feature_settings.dimensions_lower_bound_factors,
+                                          feature_settings.dimensions_upper_bound_factors)
 
     # return whether the area has stamp like features
     return density_check and wh_ratio_check and dimensions_check
@@ -68,7 +73,8 @@ def density_in_bound(stamp: cv2.Mat, density_lower_bound: float, density_upper_b
     """
     if stamp.shape[0] == 0 or stamp.shape[1] == 0:
         return False
-    return density_lower_bound <= (stamp.mean()/255) <= density_upper_bound
+    return density_lower_bound <= (stamp.mean() / 255) <= density_upper_bound
+
 
 def wh_ratio_in_bound(width: int, height: int, wh_ratio_lower_bound: float, wh_ratio_upper_bound: float) -> bool:
     """
@@ -83,17 +89,27 @@ def wh_ratio_in_bound(width: int, height: int, wh_ratio_lower_bound: float, wh_r
     """
     return wh_ratio_lower_bound <= width / height <= wh_ratio_upper_bound
 
-def dimension_in_bound(obj_width: int, obj_height: int, img_width: int, img_height: int, dimensions_lower_bound_factors: Tuple[int, int], dimensions_upper_bound_factors: Tuple[int, int]) -> bool:
+
+def dimension_in_bound(obj_width: int, obj_height: int, img_width: int, img_height: int,
+                       dimensions_lower_bound_factors: Tuple[int, int],
+                       dimensions_upper_bound_factors: Tuple[int, int]) -> bool:
     """
     Given an area of a binary image find out if its width to height ratio falls in the defined bounds.
 
-    :param stamp: contains part of the document which is checked
-    :param wh_ratio_lower_bound: width to height lower bound
-    :param wh_ratio_upper_bound: width to height upper bound
+    :param obj_width: width of the object within an image
+    :param obj_height: height of the object within an image
+    :param img_width: width of the image containing the object
+    :param img_height: height of the image containing the object
+    :param dimensions_lower_bound_factors: a pair if integers where the first defines a lower bound for the size of the
+    object as that fraction of the width of the entire image, the same for the second value and height, i.e. if this
+    value is (2,2) and the width of the image is 100, then the object is checked to have at least width 100/2 = 50
+    :param dimensions_upper_bound_factors: analogous to `dimensions_lower_bound_factors`
 
     :returns: a boolean flag which is true iff the width to height ratio falls in the defined bounds
-    """    
-    lower_bound = obj_width >= img_width / dimensions_lower_bound_factors[0] and obj_height >= img_height / dimensions_lower_bound_factors[1]
-    upper_bound = obj_width <= img_width / dimensions_upper_bound_factors[0] and obj_height <= img_height / dimensions_upper_bound_factors[1]
+    """
+    lower_bound = obj_width >= img_width / dimensions_lower_bound_factors[0] and obj_height >= img_height / \
+                  dimensions_lower_bound_factors[1]
+    upper_bound = obj_width <= img_width / dimensions_upper_bound_factors[0] and obj_height <= img_height / \
+                  dimensions_upper_bound_factors[1]
 
     return lower_bound and upper_bound

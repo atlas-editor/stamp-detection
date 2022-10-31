@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Tuple
 import cv2
 import numpy as np
 from stamp_feature_analysis import StampFeatureSettings, stamp_like_features
 
 from utils import create_binary_image, rotate_image
+
 
 @dataclass
 class AnalysisSettings:
@@ -14,23 +15,30 @@ class AnalysisSettings:
     :param opening_kernel_dimensions: dimensions used for the opening kernel in contour detection
     :param closing_kernel_dimensions: dimensions used for the closing kernel in contour detection
     :param hough_dp: inverse ratio of the accumulator resolution to the image resolution when using the Hough transform
-    :param hough_min_distance_factor: minimum distance between the centers of the detected circles when using the Hough transform as the fraction of the height of the entire document
-    :param hough_param1: upper threshold for the internal Canny edge detector used in circle detection via Hough transform
+    :param hough_min_distance_factor: minimum distance between the centers of the detected circles when using the Hough
+    transform as the fraction of the height of the entire document
+    :param hough_param1: upper threshold for the internal Canny edge detector used in circle detection via Hough
+    transform
     :param hough_param2: threshold for center detection used in circle detection via Hough transform
     :param hough_min_radius: minimum radius to be detected used in circle detection via Hough transform
     :param hough_max_radius: maximum radius to be detected used in circle detection via Hough transform
     :param hsv_br_color_bounds: color bounds for the colors blue and red respectively in the HSV color scheme
     :param cascade_classifier_path: location of the cascade classifier
-    :param cascade_classifier_width_lower_bound: the width lower bound for the detected object when using the cascade classifier
-    :param cascade_classifier_width_upper_bound: the width upper bound for the detected object when using the cascade classifier
-    :param cascade_classifier_height_lower_bound: the height lower bound for the detected object when using the cascade classifier
-    :param cascade_classifier_height_upper_bound: the height upper bound for the detected object when using the cascade classifier
-    :param stamp_feature_settings: defining parameters for objects with stamp like features, see StampFeatureSettings for more info
+    :param cascade_classifier_width_lower_bound: the width lower bound for the detected object when using the cascade
+    classifier
+    :param cascade_classifier_width_upper_bound: the width upper bound for the detected object when using the cascade
+    classifier
+    :param cascade_classifier_height_lower_bound: the height lower bound for the detected object when using the cascade
+    classifier
+    :param cascade_classifier_height_upper_bound: the height upper bound for the detected object when using the cascade
+    classifier
+    :param stamp_feature_settings: defining parameters for objects with stamp like features, see StampFeatureSettings
+    for more info
     """
     contour_opening_kernel_dimensions: Tuple[int, int] = (4, 4)
     contour_closing_kernel_dimensions: Tuple[int, int] = (50, 50)
     hough_dp: int = 2
-    hough_min_distance_factor: int = 3 
+    hough_min_distance_factor: int = 3
     hough_param1: int = 120
     hough_param2: int = 50
     hough_min_circle_radius: int = 100
@@ -41,7 +49,8 @@ class AnalysisSettings:
     cascade_classifier_width_upper_bound: int = 1000
     cascade_classifier_height_lower_bound: int = 450
     cascade_classifier_height_upper_bound: int = 550
-    stamp_feature_settings: StampFeatureSettings = StampFeatureSettings()
+    stamp_feature_settings: StampFeatureSettings = field(default_factory=StampFeatureSettings)
+
 
 @dataclass
 class ImageContainer:
@@ -59,6 +68,7 @@ class ImageContainer:
         self.width: int = self.source_image.shape[0]
         self.height: int = self.source_image.shape[1]
 
+
 def find_circles(image_container: ImageContainer, analysis_settings: AnalysisSettings) -> List[List[int]]:
     """
     It is common to have stamps which have round shape. The Hough Circle Transform is used to detect circles and
@@ -75,8 +85,11 @@ def find_circles(image_container: ImageContainer, analysis_settings: AnalysisSet
     blur = cv2.medianBlur(image_container.grayscale, 3)
 
     # use the algorithm
-    circles = cv2.HoughCircles(blur, cv2.HOUGH_GRADIENT, analysis_settings.hough_dp, image_container.height / analysis_settings.hough_min_distance_factor,
-                               param1=analysis_settings.hough_param1, param2=analysis_settings.hough_param2, minRadius=analysis_settings.hough_min_circle_radius, maxRadius=analysis_settings.hough_max_circle_radius)
+    circles = cv2.HoughCircles(blur, cv2.HOUGH_GRADIENT, analysis_settings.hough_dp,
+                               image_container.height / analysis_settings.hough_min_distance_factor,
+                               param1=analysis_settings.hough_param1, param2=analysis_settings.hough_param2,
+                               minRadius=analysis_settings.hough_min_circle_radius,
+                               maxRadius=analysis_settings.hough_max_circle_radius)
     object_coordinates = []
 
     if circles is not None:
@@ -89,17 +102,20 @@ def find_circles(image_container: ImageContainer, analysis_settings: AnalysisSet
             y = y - r
             width = height = 2 * r
 
-            stamp_grayscale = image_container.grayscale[y : y + height, x : x + width]
+            stamp_grayscale = image_container.grayscale[y: y + height, x: x + width]
             stamp_candidate = create_binary_image(stamp_grayscale)
 
             # verify the region for desired features
-            stamp_like = stamp_like_features(stamp_candidate, document_width=image_container.width, document_height=image_container.height, feature_settings=analysis_settings.stamp_feature_settings)
+            stamp_like = stamp_like_features(stamp_candidate, document_width=image_container.width,
+                                             document_height=image_container.height,
+                                             feature_settings=analysis_settings.stamp_feature_settings)
             if stamp_like:
                 corner_coordinates = [x, y, x + width, y + height]
                 object_coordinates.append(corner_coordinates)
 
     # return the stamp like objects
     return object_coordinates
+
 
 def find_colored_objects_ycrcb(image_container: ImageContainer, analysis_settings: AnalysisSettings) -> List[List[int]]:
     """
@@ -126,6 +142,7 @@ def find_colored_objects_ycrcb(image_container: ImageContainer, analysis_setting
 
     return object_coordinates
 
+
 def find_br_objects_hsv(image_container: ImageContainer, analysis_settings: AnalysisSettings) -> List[List[int]]:
     """
     Find blue and red objects in the image using the HSV color scheme.
@@ -141,6 +158,7 @@ def find_br_objects_hsv(image_container: ImageContainer, analysis_settings: Anal
         object_coordinates += _find_colored_objects_hsv(image_container, *bounds, analysis_settings)
 
     return object_coordinates
+
 
 def cascade_classifier(image_container: ImageContainer, analysis_settings: AnalysisSettings) -> List[List[int]]:
     """
@@ -160,21 +178,26 @@ def cascade_classifier(image_container: ImageContainer, analysis_settings: Analy
 
     # detect objects
     detected_objects = classifier.detectMultiScale(
-        image_container.grayscale, minSize=(analysis_settings.cascade_classifier_width_lower_bound, analysis_settings.cascade_classifier_height_lower_bound))
+        image_container.grayscale, minSize=(analysis_settings.cascade_classifier_width_lower_bound,
+                                            analysis_settings.cascade_classifier_height_lower_bound))
 
     object_coordinates = []
 
     if len(detected_objects) != 0:
         for (x, y, width, height) in detected_objects:
             # make sure the detected objects have dimensions within bounds
-            if analysis_settings.cascade_classifier_width_lower_bound < width < analysis_settings.cascade_classifier_width_upper_bound and analysis_settings.cascade_classifier_height_lower_bound < height < analysis_settings.cascade_classifier_height_upper_bound:
+            if analysis_settings.cascade_classifier_width_lower_bound < width < \
+                    analysis_settings.cascade_classifier_width_upper_bound and \
+                    analysis_settings.cascade_classifier_height_lower_bound < height < \
+                    analysis_settings.cascade_classifier_height_upper_bound:
                 object_coordinates.append([x, y, x + width, y + height])
 
     # return detected objects
     return object_coordinates
 
 
-def _find_contours(image_container: ImageContainer, threshold: cv2.Mat, analysis_settings: AnalysisSettings) -> List[List[int]]:
+def _find_contours(image_container: ImageContainer, threshold: cv2.Mat, analysis_settings: AnalysisSettings) -> \
+        List[List[int]]:
     """
     Find contours in a binary image (threshold) and verify if the contours have stamp like features and save the
     coordinates of verified objects.
@@ -206,16 +229,18 @@ def _find_contours(image_container: ImageContainer, threshold: cv2.Mat, analysis
     for c in contours:
         # verifying if the contour has the desired features
 
-        # first find the min area rectangle around an object (usually rotated) is found, as rotating is resource sensitive we do
-        # it only if the angle of rotation is high enough, define also the upright bounding rectangle
+        # first find the min area rectangle around an object (usually rotated) is found, as rotating is resource
+        # sensitive we do it only if the angle of rotation is high enough, define also the upright bounding rectangle
         center, wh, angle = cv2.minAreaRect(c)
         x, y, width, height = cv2.boundingRect(c)
         if 10 < angle < 80:
             stamp_candidate = rotate_image(opening, center, angle, int(wh[0]), int(wh[1]))
         # else just use the upright bounding rectangle
         else:
-            stamp_candidate = opening[y : y + height, x : x + width]
-        stamp_like = stamp_like_features(stamp_candidate, document_width=image_container.width, document_height=image_container.height, feature_settings=analysis_settings.stamp_feature_settings)
+            stamp_candidate = opening[y: y + height, x: x + width]
+        stamp_like = stamp_like_features(stamp_candidate, document_width=image_container.width,
+                                         document_height=image_container.height,
+                                         feature_settings=analysis_settings.stamp_feature_settings)
         # if yes we mark the object      
         if stamp_like:
             corner_coordinates = [x, y, x + width, y + height]
@@ -225,7 +250,8 @@ def _find_contours(image_container: ImageContainer, threshold: cv2.Mat, analysis
     return object_coordinates
 
 
-def _find_colored_objects_hsv(image_container: ImageContainer, color_lower_bound: int, color_upper_bound: int, analysis_settings: AnalysisSettings) -> \
+def _find_colored_objects_hsv(image_container: ImageContainer, color_lower_bound: int, color_upper_bound: int,
+                              analysis_settings: AnalysisSettings) -> \
         List[List[int]]:
     """
     The HSV color space is suitable to detect regions of the image having a certain color shade, if the bounds
